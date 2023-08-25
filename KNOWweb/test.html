@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Test</title>
+        <script src="https://d3js.org/d3.v6.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+<form id="my-form" method="post">
+        <label for="name">Name:</label>
+        <input type="text" id="name" name="name"><br><br>
+        <input type="submit" value="Submit">
+</form>
+<!-- Define a container for the network visualization -->
+<div id="network"></div>
+
+<script>
+
+ // Define the network data as an array of nodes and links
+var nodes111 = [{id: 1}, {id: 2}, {id: 3}];
+var links = [{source: 1, target: 2}, {source: 2, target: 3}];
+console.log(nodes111);
+ console.log(links);
+
+// Select the container element for the network visualization
+var container = d3.select("#network");
+
+// Create an SVG element inside the container
+var svg = container.append("svg")
+    .attr("width", 400)
+    .attr("height", 300);
+
+// Define the layout for the network visualization
+var layout = d3.forceSimulation(nodes111)
+    .force("link", d3.forceLink(links).id(function(d) { return d.id; }))
+    .force("charge", d3.forceManyBody())
+    .force("center", d3.forceCenter(200, 150));
+
+// Define the link elements
+var link = svg.selectAll("line")
+    .data(links)
+    .enter()
+    .append("line")
+    .attr("stroke", "black");
+
+// Define the node elements
+var node = svg.selectAll("circle")
+    .data(nodes111)
+    .enter()
+    .append("circle")
+    .attr("r", 10)
+    .attr("fill", "red");
+
+// Define the tick function for the layout
+function tick() {
+    link.attr("x1", function(d) { return d.source.x; })
+        .attr("y1", function(d) { return d.source.y; })
+        .attr("x2", function(d) { return d.target.x; })
+        .attr("y2", function(d) { return d.target.y; });
+    node.attr("cx", function(d) { return d.x; })
+        .attr("cy", function(d) { return d.y; });
+}
+
+// Start the layout simulation and run the tick function on each tick
+layout.on("tick", tick);
+
+
+
+</script>
+
+</body>
+</html>

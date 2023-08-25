@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Client</title>
+    <script src="https://d3js.org/d3.v6.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+       .popup {
+        position: absolute;
+        z-index: 9999;
+        background-color: #fff;
+        padding: 10px;
+        border: 1px solid #000;
+      }
+      line {
+        stroke: black;
+        stroke-opacity: 0.6;
+        stroke-width: 3px;
+        pointer-events: none;
+        position: relative;
+        z-index: -1;
+      }
+    </style>
+</head>
+<body>
+    <div id="graph"></div>
+    <div class="popup" style="display: none;"></div>
+    <form id = "my-form" method="post">
+        <label for="name">Name:</label>
+        <input type="text" id="name" name="name"><br><br>
+        <label for="description">Description:</label>
+        <input type="text" id="description" name="description"><br><br>
+        <label for="source">Source Node:</label>
+        <input type="number" id="source" name="source"><br><br>
+        <label for="target">Target Node:</label>
+        <input type="number" id="target" name="target"><br><br>
+        <label for="weight">Edge Weight:</label>
+        <input type="number" id="weight" name="weight"><br><br>
+        <input type="submit" value="Submit">
+    </form>
+    <script>
+        // initiation
+    //    update_network(1);
+        network_graph();
+        // initiation end
+        var graphdata
+        async function update_network(switchValue) {
+            alert("update_network on")
+            const jsonData = {};
+                if (switchValue === 2) {
+                    const formElement = document.querySelector('form');
+                    const formData = new FormData(formElement);
+                    for(const [key, value] of formData.entries()) {
+                        jsonData[key] = value;
+                    }
+                }
+                const response = await fetch('http://127.0.0.1:5000/update_network/' + switchValue, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(jsonData)
+                    });
+                    graphdata = await response.json();
+                    //console.log(data);
+        }
+
+        async function network_graph() {
+            // load the JSON data
+            d3.json("graph.json").then(function (data) {
+                console.log(data.nodes);
+                console.log(data.edges);
+                var nodes = data.nodes;
+                var links = data.edges;
+//            var nodes = [{id: 1}, {id: 2}, {id: 3}];
+// var links = [{source: 1, target: 2}, {source: 2, target: 3}];
+                console.log(nodes);
+                console.log(links);
+
+
+                // create the D3.js graph
+                var svg = d3.select("#graph").append("svg")
+                    .attr("width", 1000)
+                    .attr("height", 800);
+
+                var link = svg.selectAll("line")
+                    .data(links)
+                    .enter().append("line");
+
+                var node = svg.selectAll("circle")
+                    .data(nodes)
+                    .enter().append("circle")
+                    .attr("r", 10)
+                    .on("click", function (event, d) {
+                        // show the pop-up box
+                        d3.select(".popup")
+                            .html("<h2>" + d.name + "</h2><p>" + d.description + "</p>")
+                            .style("left", (event.x + 10) + "px")
+                            .style("top", (event.y + 10) + "px")
+                            .style("display", "block");
+                    })
+                    .call(d3.drag());
+
+                var simulation = d3.forceSimulation(nodes)
+                    .force("link", d3.forceLink(links).id(function (d) {
+                        return d.id;
+                    }))
+                    .force("charge", d3.forceManyBody())
+                    .force("center", d3.forceCenter(500, 400))
+
+                simulation.on("tick", function () {
+                    link.attr("x1", function (d) {
+                        return d.source.x;
+                    })
+                        .attr("y1", function (d) {
+                            return d.source.y;
+                        })
+                        .attr("x2", function (d) {
+                            return d.target.x;
+                        })
+                        .attr("y2", function (d) {
+                            return d.target.y;
+                        });
+
+                    node.attr("cx", function (d) {
+                        return d.x;
+                    })
+                        .attr("cy", function (d) {
+                            return d.y;
+                        });
+                });
+                //})
+            });
+
+            async function handleFormSubmit(event) {
+                event.preventDefault();
+                await update_network(2);
+                await network_graph();
+            }
+
+
+            document.getElementById('my-form').addEventListener('submit', handleFormSubmit);
+
+        }
+
+
+    </script>
+
+</body>
+</html>
