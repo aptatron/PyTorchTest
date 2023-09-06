@@ -253,7 +253,7 @@ model_reg = Reg_Model()
 criterion = nn.L1Loss()
 optimizer = torch.optim.SGD(model_reg.parameters(), lr=0.1)
 
-# train the model
+# train the model``
 
 torch.manual_seed(42)
 

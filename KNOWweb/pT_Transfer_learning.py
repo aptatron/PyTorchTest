@@ -1,6 +1,9 @@
 import torch
 import torchvision
+import matplotlib.pyplot as plt
+
 def main():
+
     print(torch.__version__)
     print(torchvision.__version__)
 
@@ -71,6 +74,7 @@ def main():
     model = torchvision.models.efficientnet_b0(weights=weights)
 
     auto_transforms = weights.transforms
+    test_transforms = transforms.Compose([transforms.Resize((224,224))])
 
     # import torchinfo 
 
@@ -110,14 +114,109 @@ def main():
                             test_dataloader=test_dataloader,
                             loss_fn=loss_fn,
                             optimizer=optimizer,
-                            device="cpu",
-                            epochs=5)
+                            device="cuda",
+                            epochs=2)
 
     end_time = timer()
 
     print(f"Time taken to train: {end_time - start_time:.2f} seconds")
 
+    from helper_functions import plot_loss_curves
+    plot_loss_curves(results)
+
+    from typing import List, Tuple
+
+    from PIL import Image
+
+    # taken in a trained model
+    def predict_image(model: torch.nn.Module,
+                      image_path: str,
+                        class_names: List[str],
+                        image_size: Tuple[int, int],
+                        transform: torchvision.transforms = None,
+                        device: torch.device = "cpu"
+                        ):
+        img = Image.open(image_path)
+        if transform is not None:
+            image_transformed = transform
+        else:
+            image_transformed = transforms.Compose([transforms.Resize(image_size),
+                                                    transforms.ToTensor(),
+                                                    normalize]) 
+        
+        model.to(device)
+
+        model.eval()
+        with torch.inference_mode():
+            transformed_img = image_transformed(img)
+            target_image_pred = model(transformed_img)
+            target_image_pred_probs = torch.softmax(target_image_pred, dim=1)   
+            target_image_pred_label = torch.argmax(target_image_pred_probs, dim=1)
+
+            # plot images
+            plt.figure()
+            plt.imshow(img)
+            plt.title(f"{class_names[target_image_pred_label]}: {target_image_pred_probs[0][target_image_pred_label] * 100:.2f}%")  
+            plt.axis(False)
+
+    ## plot random images from dataset
+    import random
+    # import Path
+    from pathlib import Path
+
+    num_images = 3
+    test_image_path_list = list(Path(test_dir).glob("*/*.jpg"))
+    test_image_path_sample = random.sample(test_image_path_list, num_images)
+
+    from helper_functions import pred_and_plot_image
+
+    # make predictions on random images
+    for image_path in test_image_path_sample:
+        predict_image(model=model,
+                            image_path=image_path,
+                            class_names=class_names,
+                            image_size=(224, 224),
+                            transform=test_transforms,
+                            device="cuda"
+        )
+
+
+    
+    
+    # import data_setup and engine from going_modular, if doesn't work, copy going_modular folder to the same directory
+    
+    # try:
+    #     from going_modular.going_modular import data_setup, engine
+    #     print("imported from going_modular")
+    # except:
+    #     print("imported from google drive")
+    #     from google.colab import drive
+    #     drive.mount('/drive')
+    #     import shutil
+    #     shutil.copytree("/drive/MyDrive/Colab Notebooks/going_modular", "/content/going_modular")
+
+    #     from going_modular.going_modular import data_setup, engine
+            
+    # import plot loss curve from helper_fuctions, if doesn't work, download helper_functions.py and put it in the same directory
+    # try:
+    #     from helper_functions import plot_loss_curves
+    #     print("imported from helper_functions")
+    # except:
+    #     print("imported from github")
+    #     import requests
+    #     data_url = "https://github.com/mrdbourke/pytorch-deep-learning/raw/main/helper_functions.py"
+    #     data_file = requests.get(data_url)
+    #     with open("helper_functions.py", "wb") as f:
+    #         f.write(data_file.content)
+
+    #     from helper_functions import plot_loss_curves
+
+
+    
+
+        
+
 if __name__ == "__main__":
     main()
-    
+
 
