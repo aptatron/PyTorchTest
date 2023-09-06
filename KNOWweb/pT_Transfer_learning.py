@@ -73,15 +73,13 @@ def main():
     weights = torchvision.models.EfficientNet_B0_Weights.DEFAULT
     model = torchvision.models.efficientnet_b0(weights=weights)
 
-    auto_transforms = weights.transforms
+    auto_transforms = weights.transforms(antialias=True)
     test_transforms = transforms.Compose([transforms.Resize((224,224))])
 
     # import torchinfo 
 
     import torchinfo
     from torchinfo import summary
-
-    summary(model, input_size=(1, 3, 224, 224))
 
     for param in model.features.parameters():
         param.requires_grad = False
@@ -95,7 +93,8 @@ def main():
     model.classifier = nn.Sequential(
         nn.Dropout(p=0.2, inplace=True),
         nn.Linear(in_features=1280, out_features=len(class_names)))
-
+    
+    summary(model, input_size=(1, 3, 224, 224))
     # train the model
 
     loss_fn = nn.CrossEntropyLoss()
@@ -114,71 +113,85 @@ def main():
                             test_dataloader=test_dataloader,
                             loss_fn=loss_fn,
                             optimizer=optimizer,
-                            device="cuda",
-                            epochs=2)
+                            device="cpu",
+                            epochs=5)
 
     end_time = timer()
 
     print(f"Time taken to train: {end_time - start_time:.2f} seconds")
 
-    from helper_functions import plot_loss_curves
-    plot_loss_curves(results)
+    # from helper_functions import plot_loss_curves
+    # plot_loss_curves(results)
+    # plt.show
 
-    from typing import List, Tuple
+    # from typing import List, Tuple
 
-    from PIL import Image
+    # from PIL import Image
 
-    # taken in a trained model
-    def predict_image(model: torch.nn.Module,
-                      image_path: str,
-                        class_names: List[str],
-                        image_size: Tuple[int, int],
-                        transform: torchvision.transforms = None,
-                        device: torch.device = "cpu"
-                        ):
-        img = Image.open(image_path)
-        if transform is not None:
-            image_transformed = transform
-        else:
-            image_transformed = transforms.Compose([transforms.Resize(image_size),
-                                                    transforms.ToTensor(),
-                                                    normalize]) 
+    # # taken in a trained model
+    # def predict_image(model: torch.nn.Module,
+    #                   image_path: str,
+    #                     class_names: List[str],
+    #                     image_size: Tuple[int, int],
+    #                     transform: torchvision.transforms = None,
+    #                     device: torch.device = "cpu"
+    #                     ):
+    #     img = Image.open(image_path)
+    #     if transform is not None:
+    #         image_transformed = transform
+    #     else:
+    #         image_transformed = transforms.Compose([transforms.Resize((image_size), antialias=True),
+    #                                                 transforms.ToTensor(),
+    #                                                 normalize]) 
         
-        model.to(device)
+    #     model.to(device)
 
-        model.eval()
-        with torch.inference_mode():
-            transformed_img = image_transformed(img)
-            target_image_pred = model(transformed_img)
-            target_image_pred_probs = torch.softmax(target_image_pred, dim=1)   
-            target_image_pred_label = torch.argmax(target_image_pred_probs, dim=1)
+    #     plt.figure()
+    #     plt.imshow(img)
+    #     plt.show()
 
-            # plot images
-            plt.figure()
-            plt.imshow(img)
-            plt.title(f"{class_names[target_image_pred_label]}: {target_image_pred_probs[0][target_image_pred_label] * 100:.2f}%")  
-            plt.axis(False)
+    #     model.eval()
+    #     with torch.inference_mode():
+    #         transformed_img = image_transformed(img)
+    #         print ("transformed_img.shape = ", transformed_img.shape)
+    #         transformed_img = transformed_img.unsqueeze(0).to(device)
+    #         print ("transformed_img.shape.us = ", transformed_img.shape)
+    #         target_image_pred = model(transformed_img)
+    #         target_image_pred_probs = torch.softmax(target_image_pred, dim=1)   
+    #         target_image_pred_label = torch.argmax(target_image_pred_probs, dim=1)
 
-    ## plot random images from dataset
-    import random
-    # import Path
-    from pathlib import Path
+    #         # plot images
+    #         plt.figure()
+    #         plt.imshow(img)
+    #         # plt.title(f"{class_names[target_image_pred_label]}: {target_image_pred_probs[0][target_image_pred_label] * 100:.2f}%")  
+    #         plt.axis(False)
+    #         plt.show()
 
-    num_images = 3
-    test_image_path_list = list(Path(test_dir).glob("*/*.jpg"))
-    test_image_path_sample = random.sample(test_image_path_list, num_images)
+    # ## plot random images from dataset
+    # import random
+    # # import Path
+    # from pathlib import Path
 
-    from helper_functions import pred_and_plot_image
+    # num_images = 3
+    # test_image_path_list = list(Path(test_dir).glob("*/*.jpg"))
+    # test_image_path_sample = random.sample(test_image_path_list, num_images)
 
-    # make predictions on random images
-    for image_path in test_image_path_sample:
-        predict_image(model=model,
-                            image_path=image_path,
-                            class_names=class_names,
-                            image_size=(224, 224),
-                            transform=test_transforms,
-                            device="cuda"
-        )
+    # print (test_image_path_sample)
+
+    # from helper_functions import pred_and_plot_image
+
+    # # make predictions on random images
+    # for image_path in test_image_path_sample:
+    #     # do not use plot and predict image function
+    #     pred_and_plot_image(model=model,
+    #                     image_path=image_path,
+    #                     class_names=class_names,
+    #                     # image_size=(224, 224),
+    #                     transform=test_transforms,
+    #                     device="cuda")
+
+
+        
 
 
     
@@ -209,12 +222,7 @@ def main():
     #     with open("helper_functions.py", "wb") as f:
     #         f.write(data_file.content)
 
-    #     from helper_functions import plot_loss_curves
-
-
-    
-
-        
+    #     from helper_functions import plot_loss_curves  
 
 if __name__ == "__main__":
     main()
